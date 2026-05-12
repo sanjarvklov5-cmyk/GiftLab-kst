@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GiftLab-kst — Конструктор премиум подарков из сушёных фруктов и орехов. Создайте идеальный набор прямо сейчас!">
+    <meta name="theme-color" content="#1A3021">
+    <title>GiftLab-kst — Конструктор подарков</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { -webkit-tap-highlight-color: transparent; }
+        html { scroll-behavior: smooth; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #F8F5F0; 
+            color: #1A3021; 
+            overflow-x: hidden;
+        }
+
+        .glass-card { 
+            background: rgba(255, 255, 255, 0.95); 
+            backdrop-filter: blur(10px); 
+            border: 1px solid rgba(255, 255, 255, 0.6); 
+            border-radius: 2rem; 
+        }
+
+        .box-selected { 
+            border-color: #1A3021; 
+            background: linear-gradient(135deg, #f0f2f0 0%, #ffffff 100%);
+            transform: translateY(-4px); 
+            box-shadow: 0 12px 32px rgba(26, 48, 33, 0.25);
+        }
+
+        .btn-main { 
+            background: linear-gradient(135deg, #1A3021 0%, #2d4a35 100%);
+            color: #F5EDD8; 
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); 
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-main:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 16px 48px rgba(26, 48, 33, 0.3);
+        }
+
+        .btn-main:active { 
+            transform: scale(0.96); 
+        }
+
+        .progress-fill { 
+            transition: width 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            background: linear-gradient(90deg, #1A3021 0%, #2d4a35 100%);
+        }
+        
+        .progress-full { background: linear-gradient(90deg, #10b981 0%, #059669 100%); }
+
+        @keyframes modalShow { 
+            from { transform: scale(0.92); opacity: 0; } 
+            to { transform: scale(1); opacity: 1; } 
+        }
+
+        .modal-anim { animation: modalShow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+        @keyframes toastIn { 
+            from { transform: translate(-50%, 20px); opacity: 0; } 
+            to { transform: translate(-50%, 0); opacity: 1; } 
+        }
+
+        @keyframes toastOut {
+            to { transform: translate(-50%, 20px); opacity: 0; }
+        }
+
+        .toast { 
+            animation: toastIn 0.3s ease forwards;
+        }
+
+        .toast.exit {
+            animation: toastOut 0.3s ease forwards;
+        }
+
+        .product-row {
+            transition: all 0.2s ease;
+            cursor: pointer;
+            padding: 0.5rem 0;
+        }
+
+        .product-row:active { 
+            background-color: rgba(26, 48, 33, 0.03);
+            transform: scale(0.99);
+        }
+
+        .qty-btn {
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+
+        .qty-btn:active {
+            transform: scale(0.9);
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .header-gradient {
+            background: linear-gradient(135deg, #1A3021 0%, #2d4a35 100%);
+        }
+
+        .icon-spin {
+            animation: spin 20s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 640px) {
+            .btn-main { padding: 1rem 1.5rem !important; }
+        }
+    </style>
+</head>
+<body class="pb-32">
+
+    <!-- Модальное окно (Карточка товара) -->
+    <div id="modal" class="fixed inset-0 bg-[#1A3021]/50 z-[100] hidden flex items-center justify-center p-4 backdrop-blur-sm" onclick="closeModal()">
+        <div class="glass-card bg-white p-6 max-w-sm w-full relative modal-anim" onclick="event.stopPropagation()">
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-[#1A3021] text-2xl transition-colors" aria-label="Закрыть">&times;</button>
+            
+            <div class="text-center">
+                <div id="modal-icon" class="text-5xl mb-4">✨</div>
+                <h3 id="modal-title" class="text-2xl font-bold text-[#1A3021] mb-3"></h3>
+                <div class="inline-block px-4 py-2 bg-orange-50 text-orange-700 text-xs font-bold uppercase rounded-full mb-5 tracking-wider border border-orange-100">🌿 Натуральный состав</div>
+                <p id="modal-desc" class="text-gray-600 text-sm leading-relaxed mb-6"></p>
+                
+                <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-5 border border-gray-200 mb-3">
+                    <div class="flex justify-between text-xs mb-2 text-gray-500 uppercase font-bold tracking-wider">
+                        <span>Цена за 100г</span>
+                        <span id="modal-price-unit" class="text-[#1A3021]">—</span>
+                    </div>
+                    <div class="flex justify-between items-baseline mb-4">
+                        <span class="text-sm text-gray-600">Ваша порция</span>
+                        <span class="text-xs text-gray-400">(<span id="modal-qty">100</span>г)</span>
+                    </div>
+                    <div class="flex justify-between items-end">
+                        <span class="text-gray-500 text-sm">Сумма:</span>
+                        <span id="modal-total-item" class="text-3xl font-black text-[#1A3021]">0 ₸</span>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-400 italic">💡 Нажмите «+» в меню, чтобы добавить в бокс</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Заголовок -->
+    <div class="header-gradient text-[#F5EDD8] pt-16 pb-24 px-6 rounded-b-[3rem] shadow-2xl relative overflow-hidden">
+        <div class="absolute inset-0 opacity-5">
+            <div class="icon-spin absolute -top-20 -right-20 text-8xl">🎁</div>
+        </div>
+        <div class="max-w-xl mx-auto text-center relative z-10">
+            <h1 class="text-5xl font-bold tracking-tight mb-3 drop-shadow-lg">GiftLab-kst</h1>
+            <p class="text-sm font-light opacity-90 uppercase tracking-widest drop-shadow">Premium Dried Fruits & Nuts</p>
+            <p class="text-xs opacity-75 mt-3">Создавайте идеальные подарки из натуральных ингредиентов</p>
+        </div>
+    </div>
+
+    <div class="max-w-xl mx-auto px-4 -mt-12 relative z-20">
+        <!-- Шаг 1: Выбор упаковки -->
+        <div class="glass-card p-6 shadow-xl mb-8 bg-white fade-in">
+            <div class="flex items-center gap-3 mb-7">
+                <span class="w-9 h-9 rounded-full bg-gradient-to-br from-[#1A3021] to-[#2d4a35] text-white flex items-center justify-center text-sm font-bold shadow-lg">1</span>
+                <h2 class="text-xl font-bold italic text-[#1A3021]">Выберите упаковку</h2>
+            </div>
+            <div class="grid grid-cols-2 gap-3" id="box-grid"></div>
+        </div>
+
+        <!-- Липкий прогресс-бар -->
+        <div class="glass-card p-5 shadow-lg mb-8 bg-white sticky top-4 z-40 border-2 border-[#1A3021]/10 fade-in" style="animation-delay: 0.1s">
+            <div class="flex justify-between text-xs font-bold mb-3 uppercase opacity-60 tracking-wider">
+                <span>📊 Заполнение бокса</span>
+                <span id="weight-counter" class="text-[#1A3021]">0г / 200г</span>
+            </div>
+            <div class="w-full h-4 bg-gray-100 rounded-full overflow-hidden border border-gray-200">
+                <div id="progress-bar" class="progress-fill h-full w-0 shadow-inner"></div>
+            </div>
+            <div class="text-xs text-gray-400 mt-2 text-center">Заполните коробку на <span id="progress-percent">0</span>%</div>
+        </div>
+
+        <!-- Шаг 2: Сборка состава -->
+        <div class="glass-card p-6 shadow-xl bg-white mb-6 fade-in" style="animation-delay: 0.2s">
+            <div class="flex items-center gap-3 mb-9">
+                <span class="w-9 h-9 rounded-full bg-gradient-to-br from-[#1A3021] to-[#2d4a35] text-white flex items-center justify-center text-sm font-bold shadow-lg">2</span>
+                <h2 class="text-xl font-bold italic text-[#1A3021]">Соберите состав</h2>
+            </div>
+            <div id="menu-container" class="space-y-12"></div>
+        </div>
+    </div>
+
+    <!-- Нижняя панель оформления -->
+    <div class="fixed bottom-0 left-0 right-0 p-6 bg-white/95 backdrop-blur-md border-t border-gray-100 shadow-[0_-20px_60px_rgba(0,0,0,0.08)] z-50">
+        <div class="max-w-xl mx-auto flex items-center justify-between gap-4">
+            <div class="flex flex-col">
+                <span class="text-xs font-bold uppercase opacity-50 tracking-wider">💳 К оплате</span>
+                <span id="total-price" class="text-3xl font-black text-[#1A3021] drop-shadow-sm">0 ₸</span>
+            </div>
+            <button onclick="sendOrder()" class="btn-main px-8 py-4 rounded-2xl font-bold shadow-lg flex items-center gap-2 whitespace-nowrap active:shadow-md">
+                <span>✓</span> Заказать
+            </button>
+        </div>
+    </div>
+
+    <!-- Контейнер уведомлений -->
+    <div id="toast-container" class="fixed bottom-28 left-1/2 -translate-x-1/2 z-[150] pointer-events-none"></div>
+
+    <script>
+        // Конфигурация
+        const config = { 
+            phone: '77712445164', 
+            step: 25,
+            minWeight: 100
+        };
+
+        // Коробки
+        const boxes = [
+            { id: 'mini', name: 'Мини', limit: 200, price: 500, icon: '📦', desc: 'Идеально для пробы' },
+            { id: 'mid', name: 'Средняя', limit: 350, price: 700, icon: '🎁', desc: 'Для любимого человека' },
+            { id: 'big', name: 'Большая', limit: 500, price: 900, icon: '✨', desc: 'Премиум подарок' },
+            { id: 'max', name: 'Килограмм', limit: 1000, price: 1400, icon: '👑', desc: 'Для вечеринки' }
+        ];
+
+        // Товары
+        const products = [
+            { 
+                category: '⭐ Премиум выбор', 
+                items: [
+                    { name: 'Ананас', price: 1500, icon: '🍍', desc: 'Натуральный вяленый ананас кольцами. Без сахара, сохраняет природную сладость и витамины. Идеален как начало вашего набора!' },
+                    { name: 'Миндаль', price: 1500, icon: '🥜', desc: 'Крупный жареный миндаль. Идеально сбалансированный вкус и максимум пользы. Богат белком и полезными жирами.' },
+                    { name: 'Миндаль в шоколаде', price: 1500, icon: '🍫', desc: 'Хрустящий цельный миндаль, покрытый слоем нежного молочного шоколада. Настоящий десерт для гурманов!' },
+                    { name: 'Клубника', price: 1200, icon: '🍓', desc: 'Цельные ягоды вяленой клубники. Насыщенный аромат лета в каждом кусочке. Отличный источник витамина C.' },
+                    { name: 'Макадамия', price: 1200, icon: '💎', desc: 'Самый нежный и питательный орех со сливочно-ванильным вкусом. Ключик для открытия — в каждом наборе.' }
+                ]
+            },
+            { 
+                category: '🌴 Тропики и Орехи', 
+                items: [
+                    { name: 'Грецкий орех', price: 1300, icon: '🥜', desc: 'Золотистые половинки отборного грецкого ореха. Свежий урожай. Полезен для мозга и сердца.' },
+                    { name: 'Маракуйя', price: 1000, icon: '🥝', desc: 'Экзотическая вяленая маракуйя. Имеет яркий, ни на что не похожий кисло-сладкий вкус. Для любителей необычного!' },
+                    { name: 'Вишня', price: 1000, icon: '🍒', desc: 'Вишня вяленая без косточек. Сочная, мясистая и очень полезная. Природный энергетик.' },
+                    { name: 'Киви', price: 1000, icon: '🥝', desc: 'Яркие дольки вяленого киви. Отличный способ добавить цвета и витаминов в ваш подарок.' },
+                    { name: 'Дыня', price: 900, icon: '🍈', desc: 'Традиционные дынные палочки. Мягкие, сладкие и очень ароматные. Любимец детей и взрослых.' }
+                ]
+            },
+            { 
+                category: '🍬 Снеки и Сладости', 
+                items: [
+                    { name: 'Банановые чипсы', price: 900, icon: '🍌', desc: 'Тонкие и хрустящие ломтики банана. Любимое лакомство взрослых и детей. Натуральная сладость!' },
+                    { name: 'Цукаты ассорти', price: 900, icon: '🌈', desc: 'Смесь из натуральных цукатов тропических фруктов. Радуга вкусов в одном наборе!' },
+                    { name: 'Курага', price: 900, icon: '🍑', desc: 'Отборная янтарная курага. Натуральная сушка, сохраняющая всю пользу фрукта. Железо и калий в норме!' },
+                    { name: 'Набат', price: 400, icon: '🍬', desc: 'Кристаллический сахар на нитях. Натуральная сладость, которая идеально дополняет чай. Ностальгия!' },
+                    { name: 'Арахис', price: 350, icon: '🥜', desc: 'Жареный арахис высшего качества. Классический сытный и доступный снек. Хит продаж!' }
+                ]
+            }
+        ];
+
+        // Состояние
+        let selectedBox = boxes[0];
+        let cart = {};
+
+        // Инициализация
+        function init() {
+            renderBoxes();
+            renderProducts();
+            updateUI();
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') closeModal();
+            });
+        }
+
+        // Уведомления
+        function showToast(text, type = 'default') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = 'bg-[#1A3021]';
+            if (type === 'success') bgClass = 'bg-green-600';
+            if (type === 'warning') bgClass = 'bg-orange-600';
+            if (type === 'error') bgClass = 'bg-red-600';
+            
+            toast.className = `toast ${bgClass} text-white px-6 py-3 rounded-full shadow-2xl mb-2 text-sm font-bold max-w-xs`;
+            toast.innerText = text;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.add('exit');
+                setTimeout(() => toast.remove(), 300);
+            }, 2200);
+        }
+
+        // Отрисовка коробок
+        function renderBoxes() {
+            const container = document.getElementById('box-grid');
+            container.innerHTML = boxes.map(box => `
+                <div onclick="selectBox('${box.id}')" class="p-4 border-2 rounded-2xl cursor-pointer transition-all duration-200 flex flex-col items-center text-center ${selectedBox.id === box.id ? 'box-selected' : 'border-gray-100 hover:border-gray-200'} group">
+                    <span class="text-3xl mb-2 group-hover:scale-110 transition-transform">${box.icon}</span>
+                    <span class="font-bold text-sm text-[#1A3021]">${box.name}</span>
+                    <span class="text-xs opacity-50 mt-1 font-medium">${box.limit}г</span>
+                    <span class="text-xs opacity-40 text-center mt-2 text-gray-500 group-hover:text-gray-700">${box.desc}</span>
+                </div>
+            `).join('');
+        }
+
+        // Отрисовка товаров
+        function renderProducts() {
+            const container = document.getElementById('menu-container');
+            container.innerHTML = products.map(cat => `
+                <div>
+                    <h3 class="text-xs font-black uppercase tracking-[0.3em] text-[#1A3021]/50 mb-6 flex items-center gap-3">
+                        <span class="w-1 h-4 bg-[#1A3021]/30 rounded-full"></span>${cat.category}
+                    </h3>
+                    <div class="space-y-5">
+                        ${cat.items.map(item => `
+                            <div class="flex items-center justify-between group product-row rounded-xl px-3 py-2 -mx-3 hover:bg-gray-50">
+                                <div class="flex items-center flex-1 cursor-pointer gap-3 min-w-0" onclick="openModal('${item.name}')">
+                                    <span class="text-2xl flex-shrink-0">${item.icon}</span>
+                                    <div class="flex flex-col flex-1 min-w-0">
+                                        <span class="font-semibold text-sm text-[#1A3021] border-b border-dotted border-gray-300 w-fit group-hover:text-black transition-colors">${item.name}</span>
+                                        <span class="text-xs opacity-50 font-medium">${item.price} ₸ / 100г</span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center bg-gray-100 rounded-xl p-1 border border-gray-200 flex-shrink-0 ml-2">
+                                    <button onclick="changeQty('${item.name}', -${config.step})" class="qty-btn w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white transition-all active:bg-gray-50 text-[#1A3021] font-bold" title="Убрать">−</button>
+                                    <span class="w-12 text-center text-xs font-black text-[#1A3021]">${cart[item.name] || 0}г</span>
+                                    <button onclick="changeQty('${item.name}', ${config.step})" class="qty-btn w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white transition-all active:bg-gray-50 text-[#1A3021] font-bold" title="Добавить">+</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Выбор коробки
+        function selectBox(id) {
+            const newBox = boxes.find(b => b.id === id);
+            const currentWeight = Object.values(cart).reduce((a, b) => a + b, 0);
+            
+            if (currentWeight > newBox.limit) {
+                showToast(`🚫 Вес ${currentWeight}г не влезет в "${newBox.name}"!`, 'warning');
+                return;
+            }
+            
+            selectedBox = newBox;
+            renderBoxes();
+            updateUI();
+            showToast(`✓ Выбрана коробка "${newBox.name}"`, 'success');
+        }
+
+        // Изменение количества
+        function changeQty(name, delta) {
+            const currentTotal = Object.values(cart).reduce((a, b) => a + b, 0);
+            const currentItem = cart[name] || 0;
+            
+            if (delta > 0 && (currentTotal + delta) > selectedBox.limit) {
+                showToast(`⚠️ Коробочка полная! Осталось ${selectedBox.limit - currentTotal}г`, 'warning');
+                return;
+            }
+
+            const next = currentItem + delta;
+            if (next >= config.minWeight) {
+                cart[name] = next;
+            } else if (next < config.minWeight) {
+                delete cart[name];
+            }
+            
+            renderProducts();
+            updateUI();
+        }
+
+        // Обновление UI
+        function updateUI() {
+            let totalWeight = 0;
+            let totalPrice = selectedBox.price;
+
+            Object.entries(cart).forEach(([name, weight]) => {
+                const item = products.flatMap(c => c.items).find(i => i.name === name);
+                totalWeight += weight;
+                totalPrice += (item.price / 100) * weight;
+            });
+
+            const percent = Math.min(100, Math.round((totalWeight / selectedBox.limit) * 100));
+            document.getElementById('progress-bar').style.width = percent + '%';
+            
+            if (percent === 100) {
+                document.getElementById('progress-bar').classList.add('progress-full');
+            } else {
+                document.getElementById('progress-bar').classList.remove('progress-full');
+            }
+            
+            document.getElementById('progress-percent').innerText = percent;
+            document.getElementById('weight-counter').innerText = `${totalWeight}г / ${selectedBox.limit}г`;
+            document.getElementById('total-price').innerText = `${Math.round(totalPrice).toLocaleString()} ₸`;
+        }
+
+        // Модальное окно
+        function openModal(name) {
+            const item = products.flatMap(c => c.items).find(i => i.name === name);
+            const currentQty = cart[name] || 100;
+            
+            document.getElementById('modal-title').innerText = item.name;
+            document.getElementById('modal-icon').innerText = item.icon;
+            document.getElementById('modal-desc').innerText = item.desc;
+            document.getElementById('modal-price-unit').innerText = `${item.price} ₸`;
+            document.getElementById('modal-qty').innerText = currentQty;
+            document.getElementById('modal-total-item').innerText = `${Math.round((item.price / 100) * currentQty)} ₸`;
+            
+            document.getElementById('modal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        // Отправка заказа
+        function sendOrder() {
+            let totalWeight = Object.values(cart).reduce((a, b) => a + b, 0);
+            if (totalWeight === 0) {
+                showToast('📦 Бокс еще пустой! Добавьте товары', 'error');
+                return;
+            }
+
+            let msg = `*🎁 Заказ GiftLab-kst*\n`;
+            msg += `━━━━━━━━━━━━━━━━━\n`;
+            msg += `📦 *Коробка:* ${selectedBox.name}\n`;
+            msg += `⚖️ *Вес:* ${totalWeight}г\n\n`;
+            msg += `🥑 *Состав:*\n`;
+            
+            let finalPrice = selectedBox.price;
+            Object.entries(cart).forEach(([name, weight]) => {
+                const item = products.flatMap(c => c.items).find(i => i.name === name);
+                const cost = (item.price / 100) * weight;
+                msg += `  • ${item.icon} ${name}: ${weight}г\n`;
+                finalPrice += cost;
+            });
+
+            msg += `━━━━━━━━━━━━━━━━━\n`;
+            msg += `💳 *ИТОГО:* ${Math.round(finalPrice)} ₸`;
+            
+            showToast('✓ Отправляем заказ в WhatsApp...', 'success');
+            setTimeout(() => {
+                window.open(`https://wa.me/${config.phone}?text=${encodeURIComponent(msg)}`, '_blank');
+            }, 500);
+        }
+
+        // Запуск
+        init();
+    </script>
+</body>
+</html>
